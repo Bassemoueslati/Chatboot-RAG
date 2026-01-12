@@ -1,0 +1,117 @@
+# Description détaillée des fichiers et dossiers du projet (en français)
+
+## Dossiers
+
+### dataset/
+- **Rôle** : Stockage des données brutes au format CSV utilisées pour alimenter le chatbot.
+- **Contenu** :
+  - diet_recommendations_dataset.csv : Contient des données sur les patients, leurs profils diététiques, recommandations, etc. Colonnes : Patient_ID, Age, Gender, Weight_kg, etc.
+  - gym_members_exercise_tracking_synthetic_data.csv : Données synthétiques sur les membres de gym, incluant poids, BPM, type d'exercice, etc.
+  - megaGymDataset.csv : Base de données d'exercices de musculation avec titre, description, partie du corps, équipement, niveau, etc.
+  - Nutrition__Physical_Activity__and_Obesity.csv : Données du CDC sur la nutrition et l'obésité, avec années, localisation, questions, valeurs, etc.
+- **Processus** : Ces fichiers sont lus par data_processor.py pour être transformés en texte descriptif.
+
+### models/
+- **Rôle** : Stockage des artefacts d'IA entraînés pour la recherche et la génération.
+- **Contenu** :
+  - faiss_index.idx : Index vectoriel FAISS pour une recherche rapide dans les embeddings des documents.
+  - model.pkl : Modèle SentenceTransformer (all-MiniLM-L6-v2) sauvegardé pour encoder les requêtes.
+  - documents.pkl : Liste des documents traités sauvegardée pour éviter de recharger depuis le texte.
+- **Processus** : Créés par rag_setup.py. Chargés par chatbot.py lors de l'initialisation.
+
+### data_processing/
+- **Rôle** : Stockage des données intermédiaires traitées.
+- **Contenu** :
+  - documents.txt : Fichier texte contenant tous les documents concaténés, un par ligne.
+- **Processus** : Généré par data_processor.py. Lu par rag_setup.py pour créer les embeddings.
+
+## Fichiers principaux
+
+### app.py
+- **Rôle** : Interface utilisateur web avec Streamlit.
+- **Fonctions principales** :
+  - `auto_archive_conversation()` : Archive automatiquement les conversations si elles ont au moins un Q&A.
+  - `load_archived_conversations()` : Liste tous les fichiers d'archive de conversation.
+  - `load_conversation(filename)` : Charge une conversation spécifique depuis un fichier JSON.
+- **Processus** :
+  - Initialise l'état de session pour l'historique et les archives.
+  - Affiche la sidebar pour le profil utilisateur (âge, genre, poids, taille, IMC calculé).
+  - Gère l'interface de chat : affiche l'historique, traite les soumissions de requête, appelle get_response().
+  - Gère l'archivage : boutons pour voir les archives, charger, supprimer des conversations archivées.
+- **Dépendances** : Utilise chatbot.py pour les réponses, json et os pour la gestion des fichiers.
+
+### chatbot.py
+- **Rôle** : Implémentation du chatbot RAG.
+- **Classe RAGChatbot** :
+  - `__init__()` : Charge l'index FAISS, le modèle SentenceTransformer et les documents depuis models/.
+  - `retrieve(query, k=2)` : Encode la requête, recherche les k documents les plus similaires via FAISS.
+  - `generate_response(query, profile, retrieved_docs)` : Construit un prompt avec le profil, la requête et le contexte, invoque le LLM Ollama.
+- **Fonction get_response(query, profile, conversation=None)** :
+  - Crée une instance RAGChatbot.
+  - Récupère les documents pertinents.
+  - Génère et retourne la réponse.
+- **Processus** : Appelé par app.py pour chaque requête utilisateur. Utilise FAISS pour la recherche, Ollama pour la génération.
+
+### data_processor.py
+- **Rôle** : Transformation des données CSV en documents texte.
+- **Fonctions** :
+  - `load_datasets()` : Parcourt la liste des fichiers CSV dans dataset/, les charge avec pandas si existants.
+  - `preprocess_diet_data(df)` : Pour chaque ligne, crée une chaîne descriptive avec ID patient, âge, poids, etc.
+  - `preprocess_gym_data(df)` : Crée des descriptions pour les membres de gym avec âge, poids, BPM, etc.
+  - `preprocess_mega_gym_data(df)` : Descriptions d'exercices avec titre, description, type, etc.
+  - `preprocess_nutrition_data(df)` : Échantillonne 1000 lignes, crée des textes sur années, localisation, questions, etc.
+  - `main()` : Appelle load_datasets, applique les preprocess, concatène tous les documents.
+- **Processus** : Exécuté pour traiter les données. Sauvegarde documents.txt dans data_processing/. Peut être re-exécuté pour régénérer les données traitées.
+
+### rag_setup.py
+- **Rôle** : Construction de l'index de recherche vectorielle.
+- **Fonction main()** :
+  - Charge documents.txt depuis data_processing/.
+  - Nettoie et prépare la liste des documents.
+  - Charge le modèle SentenceTransformer.
+  - Encode tous les documents en embeddings.
+  - Crée un index FAISS IndexFlatL2, ajoute les embeddings.
+  - Sauvegarde l'index, le modèle et les documents dans models/.
+- **Processus** : À exécuter après data_processor.py. Crée les artefacts nécessaires pour le chatbot. Temps d'exécution dépend du nombre de documents (embeddings).
+
+### README.md
+- **Rôle** : Documentation complète du projet.
+- **Sections** : Description, fonctionnalités, prérequis, installation, setup, utilisation, données sources, architecture, dépannage, contribution, licence.
+- **Processus** : À lire pour comprendre le projet. Mis à jour manuellement lors de changements.
+
+### requirements.txt
+- **Rôle** : Liste des dépendances Python.
+- **Contenu** : streamlit, faiss-cpu, sentence-transformers, langchain-ollama, langchain-core, pandas, numpy.
+- **Processus** : Installer avec `pip install -r requirements.txt`.
+
+### TODO.md
+- **Rôle** : Suivi des tâches de développement.
+- **Contenu** : Liste des tâches terminées et à faire, avec dates et descriptions.
+- **Processus** : Mis à jour manuellement au fur et à mesure du développement.
+
+## Flux de travail général
+
+1. **Préparation des données** :
+   - Placer les CSV dans dataset/.
+   - Exécuter `python data_processor.py` pour créer data_processing/documents.txt.
+
+2. **Construction du modèle** :
+   - Exécuter `python rag_setup.py` pour créer models/ (index, modèle, documents).
+
+3. **Utilisation** :
+   - Lancer `streamlit run app.py`.
+   - Entrer le profil dans la sidebar.
+   - Poser des questions dans le chat.
+
+4. **Maintenance** :
+   - Régénérer les données si les CSV changent.
+   - Recréer l'index si les documents changent.
+   - Archiver les conversations via l'interface.
+
+## Notes techniques
+- Utilise FAISS pour une recherche vectorielle efficace (recherche en O(1) après indexation).
+- SentenceTransformer pour les embeddings (modèle léger all-MiniLM-L6-v2).
+- Ollama pour l'inférence LLM locale (modèle gemma2:2b).
+- Streamlit pour une interface web simple sans serveur backend.
+- Pandas pour la manipulation des CSV.
+- Pickle pour la sérialisation des objets Python (modèle, documents).
