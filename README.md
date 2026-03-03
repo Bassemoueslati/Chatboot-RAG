@@ -9,59 +9,148 @@ A Retrieval-Augmented Generation (RAG) based chatbot that provides personalized 
 - **Interactive UI**: Built with Streamlit for easy web-based interaction
 - **Conversation History**: Maintains chat history and allows archiving conversations
 - **Data-Driven**: Trained on multiple datasets including gym exercises, diet recommendations, and obesity data
+- **Docker Support**: Containerized application with Dockerfile and docker-compose
+- **Kubernetes Ready**: Kubernetes manifests for deployment
 
 ## Prerequisites
 
 - Python 3.8 or higher
 - [Ollama](https://ollama.ai/) installed and running
 - Gemma2:2b model pulled in Ollama (`ollama pull gemma2:2b`)
+- Docker (for containerized deployment)
+- Kubernetes (for K8s deployment)
 
 ## Installation
+
+### Local Installation
 
 1. **Clone or download the project files** to your local machine.
 
 2. **Create a virtual environment** (recommended):
-   ```bash
+   
+```
+bash
    python -m venv venv
    # On Windows:
    venv\Scripts\activate
    # On macOS/Linux:
    source venv/bin/activate
-   ```
+   
+```
 
 3. **Install required Python packages**:
-   ```bash
+   
+```
+bash
    pip install streamlit faiss-cpu sentence-transformers langchain-ollama numpy
-   ```
+   
+```
+
+### Docker Installation
+
+1. **Build the Docker image**:
+   
+```
+bash
+   docker build -t chatboot-rag:latest .
+   
+```
+
+2. **Run the container**:
+   
+```
+bash
+   docker run -p 8501:8501 -e OLLAMA_HOST=http://host.docker.internal:11434 chatboot-rag:latest
+   
+```
+
+### Docker Compose Installation
+
+Run with docker-compose:
+```
+bash
+docker-compose up -d
+```
+
+The application will be available at `http://localhost:8501`
 
 ## Setup
 
 1. **Process the data** (if not already done):
-   ```bash
+   
+```
+bash
    python data_processor.py
-   ```
-   This script processes the CSV datasets (`diet_recommendations_dataset.csv`, `gym_members_exercise_tracking_synthetic_data.csv`, `megaGymDataset.csv`, `Nutrition__Physical_Activity__and_Obesity.csv`) and creates `documents.txt` with processed text data.
+   
+```
+   This script processes the CSV datasets and creates `documents.txt` with processed text data.
 
 2. **Build the FAISS index**:
-   ```bash
+   
+```
+bash
    python rag_setup.py
-   ```
+   
+```
    This creates the FAISS index (`faiss_index.idx`), saves the SentenceTransformer model (`model.pkl`), and documents (`documents.pkl`) for efficient retrieval.
 
 3. **Ensure Ollama is running** and the model is available:
-   ```bash
+   
+```
+bash
    ollama pull gemma2:2b
    ollama serve  # If not already running
-   ```
+   
+```
 
 ## Running the Chatbot
 
+### Local Mode
 Start the Streamlit application:
-```bash
+```
+bash
 streamlit run app.py
 ```
 
 The chatbot will be accessible at `http://localhost:8501` in your web browser.
+
+### Docker Mode
+```
+bash
+docker-compose up -d
+```
+
+### Kubernetes Mode
+```
+bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+```
+
+## Kubernetes Deployment
+
+The project includes Kubernetes manifests in the `k8s/` directory:
+
+- **namespace.yaml**: Creates the `chatboot-rag` namespace
+- **deployment.yaml**: Defines the deployment with resource limits
+- **service.yaml**: Exposes the application via LoadBalancer
+- **ingress.yaml**: Optional ingress for external access
+
+### Deploy to Kubernetes
+
+```
+bash
+# Apply all manifests
+kubectl apply -f k8s/
+
+# Check deployment status
+kubectl get pods -n chatboot-rag
+kubectl get svc -n chatboot-rag
+
+# View logs
+kubectl logs -n chatboot-rag -l app=chatboot-rag
+```
 
 ## Usage
 
@@ -89,6 +178,8 @@ The chatbot uses the following datasets:
 - **Index Building**: Creates FAISS vector index for retrieval (`rag_setup.py`)
 - **Retrieval**: FAISS index with SentenceTransformer embeddings
 - **Generation**: Ollama Gemma2:2b model for response generation
+- **Containerization**: Docker and Docker Compose
+- **Orchestration**: Kubernetes manifests
 
 ## Troubleshooting
 
@@ -96,6 +187,8 @@ The chatbot uses the following datasets:
 - **Import errors**: Verify all required packages are installed.
 - **Index not found**: Run `rag_setup.py` to build the FAISS index.
 - **Documents not found**: Run `data_processor.py` to process the CSV files.
+- **Docker issues**: Ensure Docker daemon is running and ports are available.
+- **Kubernetes issues**: Check kubectl configuration and cluster status.
 
 ## Contributing
 
@@ -104,6 +197,7 @@ Feel free to contribute by:
 - Improving the prompt engineering
 - Enhancing the UI/UX
 - Optimizing performance
+- Adding more Kubernetes configurations
 
 ## License
 
