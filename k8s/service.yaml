@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatboot-rag-service
+  labels:
+    app: chatboot-rag
+spec:
+  type: LoadBalancer
+  selector:
+    app: chatboot-rag
+  ports:
+  - protocol: TCP
+    port: 8501
+    targetPort: 8501
+    name: http

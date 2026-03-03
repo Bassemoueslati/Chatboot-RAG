@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatboot-rag
+  labels:
+    app: chatboot-rag
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chatboot-rag
+  template:
+    metadata:
+      labels:
+        app: chatboot-rag
+    spec:
+      containers:
+      - name: chatboot-rag
+        image: chatboot-rag:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8501
+        env:
+        - name: OLLAMA_HOST
+          value: "http://host.docker.internal:11434"
+        - name: OLLAMA_MODEL
+          value: "gemma2:2b"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: app-storage
+          mountPath: /app
+      volumes:
+      - name: app-storage
+        emptyDir: {}
