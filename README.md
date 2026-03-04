@@ -1,4 +1,4 @@
-# Gym Exercise and Diet Chatbot
+# Gym Exercise and Diet Chatbot. 
 
 A Retrieval-Augmented Generation (RAG) based chatbot that provides personalized gym exercise and diet recommendations using Streamlit, FAISS, Sentence Transformers, and Ollama LLM.
 
